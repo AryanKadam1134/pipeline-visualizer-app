@@ -3,8 +3,6 @@
 
 A modern React + TypeScript web application for building and managing Directed Acyclic Graphs (DAGs) visually. Perfect for designing data pipelines, workflow orchestration, and process modeling.
 
-![Pipeline Editor Demo](https://via.placeholder.com/800x400/6366f1/ffffff?text=Pipeline+Editor+Demo)
-
 ## 🚀 Features
 
 ### Core Functionality
@@ -175,58 +173,8 @@ src/
 - **GitHub Pages**: Use `gh-pages` package for deployment
 - **AWS S3**: Upload build files to S3 bucket with static hosting
 
-## 🤝 Contributing
-
-### Development Workflow
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Make your changes
-4. Test thoroughly
-5. Commit: `git commit -m 'Add amazing feature'`
-6. Push: `git push origin feature/amazing-feature`
-7. Open a Pull Request
-
-### Code Standards
-- TypeScript strict mode enabled
-- ESLint configuration included
-- Prettier for code formatting
-- Follow React best practices
-
-### Adding New Features
-
-**New Validation Rules**
-- Add logic to `src/utils/validateDAG.ts`
-- Update validation interface
-- Add UI feedback in Sidebar
-
-**New Node Types**
-- Extend React Flow node types
-- Update graph helpers
-- Modify Canvas component
-
-## 📄 License
-
-MIT License - see LICENSE file for details
-
-## 🆘 Support
-
-- **Issues**: GitHub Issues for bug reports
-- **Discussions**: GitHub Discussions for questions
-- **Documentation**: This README and inline code comments
-
-## 🔄 Changelog
-
-### v1.0.0 (Current)
-- Initial release
-- Core DAG building functionality
-- Real-time validation
-- Auto-layout support
-- JSON export capabilities
-- Responsive design
-
 ---
 
 **Built with ❤️ using React, TypeScript, and React Flow**
 
-[Demo](https://your-demo-url.vercel.app) | [Source Code](https://github.com/your-username/pipeline-editor) | [Report Bug](https://github.com/your-username/pipeline-editor/issues)
+[Demo]([https://your-demo-url.vercel.app](https://pipeline-visualizer-app.vercel.app/)) | [Source Code]([https://github.com/your-username/pipeline-editor](https://github.com/AryanKadam1134/pipeline-visualizer-app.git))
