@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useMemo } from 'react';
 import { Node, Edge } from '@xyflow/react';
 import { Toaster } from "@/components/ui/sonner";
@@ -21,7 +20,10 @@ function App() {
 
   // Check if there are selected items
   const hasSelectedItems = useMemo(() => {
-    return nodes.some(node => node.selected) || edges.some(edge => edge.selected);
+    const selectedNodes = nodes.filter(node => node.selected);
+    const selectedEdges = edges.filter(edge => edge.selected);
+    console.log('Selected nodes:', selectedNodes.length, 'Selected edges:', selectedEdges.length);
+    return selectedNodes.length > 0 || selectedEdges.length > 0;
   }, [nodes, edges]);
 
   const handleAddNode = useCallback((position: { x: number; y: number }) => {
@@ -58,12 +60,15 @@ function App() {
     const selectedNodes = nodes.filter(node => node.selected);
     const selectedEdges = edges.filter(edge => edge.selected);
     
+    console.log('Delete button clicked. Selected nodes:', selectedNodes.length, 'Selected edges:', selectedEdges.length);
+    
     if (selectedNodes.length === 0 && selectedEdges.length === 0) {
       toast.error('No items selected');
       return;
     }
 
     const selectedNodeIds = selectedNodes.map(node => node.id);
+    console.log('Deleting node IDs:', selectedNodeIds);
     
     const remainingNodes = nodes.filter(node => !selectedNodeIds.includes(node.id));
     const remainingEdges = edges.filter(edge => 
