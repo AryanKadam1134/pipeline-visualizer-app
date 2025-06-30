@@ -14,6 +14,7 @@ import {
   ConnectionMode,
   useReactFlow,
   ReactFlowProvider,
+  BackgroundVariant,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { canConnectNodes, autoLayoutNodes } from '../utils/graphHelpers';
@@ -110,11 +111,11 @@ function CanvasInner({
         edges={edges}
         onNodesChange={(changes) => {
           const updatedNodes = nodes.map(node => {
-            const change = changes.find(c => c.id === node.id);
-            if (change && change.type === 'position' && change.position) {
+            const change = changes.find(c => c.type !== 'add' && c.type !== 'remove' && 'id' in c && c.id === node.id);
+            if (change && change.type === 'position' && 'position' in change && change.position) {
               return { ...node, position: change.position };
             }
-            if (change && change.type === 'select') {
+            if (change && change.type === 'select' && 'selected' in change) {
               return { ...node, selected: change.selected };
             }
             return node;
@@ -123,8 +124,8 @@ function CanvasInner({
         }}
         onEdgesChange={(changes) => {
           const updatedEdges = edges.map(edge => {
-            const change = changes.find(c => c.id === edge.id);
-            if (change && change.type === 'select') {
+            const change = changes.find(c => c.type !== 'add' && c.type !== 'remove' && 'id' in c && c.id === edge.id);
+            if (change && change.type === 'select' && 'selected' in change) {
               return { ...edge, selected: change.selected };
             }
             return edge;
@@ -147,7 +148,7 @@ function CanvasInner({
           }}
           nodeColor="#6366f1"
         />
-        <Background variant="dots" gap={20} size={1} color="#e2e8f0" />
+        <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#e2e8f0" />
       </ReactFlow>
     </div>
   );
