@@ -15,6 +15,8 @@ import {
   useReactFlow,
   ReactFlowProvider,
   BackgroundVariant,
+  NodeChange,
+  EdgeChange,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { canConnectNodes } from '../utils/graphHelpers';
@@ -35,7 +37,7 @@ function CanvasInner({
   onNodesChange, 
   onEdgesChange, 
   onAddNode,
-  onAutoLayout 
+  onAutoLayout
 }: CanvasProps) {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { screenToFlowPosition } = useReactFlow();
@@ -45,32 +47,75 @@ function CanvasInner({
   const [internalEdges, setInternalEdges, onInternalEdgesChange] = useEdgesState(edges);
 
   // Only sync when external state changes significantly (like adding/removing nodes)
+  const prevNodesLength = React.useRef(nodes.length);
+  const prevEdgesLength = React.useRef(edges.length);
+  const prevNodeIds = React.useRef(new Set(nodes.map(n => n.id)));
+  const prevEdgeIds = React.useRef(new Set(edges.map(e => e.id)));
+  
   React.useEffect(() => {
-    if (nodes.length !== internalNodes.length || 
-        nodes.some(node => !internalNodes.find(n => n.id === node.id))) {
+    const currentNodeIds = new Set(nodes.map(n => n.id));
+    const hasNewNodes = nodes.some(node => !prevNodeIds.current.has(node.id));
+    const hasRemovedNodes = Array.from(prevNodeIds.current).some(id => !currentNodeIds.has(id));
+    
+    if (hasNewNodes || hasRemovedNodes) {
       setInternalNodes(nodes);
+      prevNodesLength.current = nodes.length;
+      prevNodeIds.current = currentNodeIds;
     }
-  }, [nodes.length, setInternalNodes]);
+  }, [nodes, setInternalNodes]);
 
   React.useEffect(() => {
-    if (edges.length !== internalEdges.length ||
-        edges.some(edge => !internalEdges.find(e => e.id === edge.id))) {
+    const currentEdgeIds = new Set(edges.map(e => e.id));
+    const hasNewEdges = edges.some(edge => !prevEdgeIds.current.has(edge.id));
+    const hasRemovedEdges = Array.from(prevEdgeIds.current).some(id => !currentEdgeIds.has(id));
+    
+    if (hasNewEdges || hasRemovedEdges) {
       setInternalEdges(edges);
+      prevEdgesLength.current = edges.length;
+      prevEdgeIds.current = currentEdgeIds;
     }
-  }, [edges.length, setInternalEdges]);
+  }, [edges, setInternalEdges]);
 
-  // Only sync back to parent when nodes/edges are added or removed, not when positions change
-  React.useEffect(() => {
-    if (internalNodes.length !== nodes.length) {
-      onNodesChange(internalNodes);
+  // Handle node and edge changes and sync selection immediately
+  const handleNodesChange = React.useCallback((changes: NodeChange[]) => {
+    onInternalNodesChange(changes);
+    
+    // Check if this is a selection change
+    const hasSelectionChange = changes.some(change => change.type === 'select');
+    if (hasSelectionChange) {
+      // Update the parent state immediately with the new selection
+      setTimeout(() => {
+        const updatedNodes = internalNodes.map(node => {
+          const change = changes.find(c => c.type === 'select' && c.id === node.id);
+          if (change && 'selected' in change) {
+            return { ...node, selected: change.selected };
+          }
+          return node;
+        });
+        onNodesChange(updatedNodes);
+      }, 0);
     }
-  }, [internalNodes.length, onNodesChange]);
+  }, [onInternalNodesChange, onNodesChange, internalNodes]);
 
-  React.useEffect(() => {
-    if (internalEdges.length !== edges.length) {
-      onEdgesChange(internalEdges);
+  const handleEdgesChange = React.useCallback((changes: EdgeChange[]) => {
+    onInternalEdgesChange(changes);
+    
+    // Check if this is a selection change
+    const hasSelectionChange = changes.some(change => change.type === 'select');
+    if (hasSelectionChange) {
+      // Update the parent state immediately with the new selection
+      setTimeout(() => {
+        const updatedEdges = internalEdges.map(edge => {
+          const change = changes.find(c => c.type === 'select' && c.id === edge.id);
+          if (change && 'selected' in change) {
+            return { ...edge, selected: change.selected };
+          }
+          return edge;
+        });
+        onEdgesChange(updatedEdges);
+      }, 0);
     }
-  }, [internalEdges.length, onEdgesChange]);
+  }, [onInternalEdgesChange, onEdgesChange, internalEdges]);
 
   const onConnect = useCallback((params: Connection) => {
     if (!params.source || !params.target) return;
@@ -105,29 +150,35 @@ function CanvasInner({
     onAddNode(position);
   }, [onAddNode, screenToFlowPosition]);
 
+  const deleteSelected = React.useCallback(() => {
+    const selectedNodes = internalNodes.filter(node => node.selected);
+    const selectedEdges = internalEdges.filter(edge => edge.selected);
+    
+    if (selectedNodes.length > 0 || selectedEdges.length > 0) {
+      const selectedNodeIds = selectedNodes.map(node => node.id);
+      
+      const remainingNodes = internalNodes.filter(node => !selectedNodeIds.includes(node.id));
+      const remainingEdges = internalEdges.filter(edge => 
+        !selectedEdges.some(selectedEdge => selectedEdge.id === edge.id) &&
+        !selectedNodeIds.includes(edge.source) &&
+        !selectedNodeIds.includes(edge.target)
+      );
+      
+      setInternalNodes(remainingNodes);
+      setInternalEdges(remainingEdges);
+      
+      const deletedCount = selectedNodes.length + selectedEdges.length;
+      toast.success(`Deleted ${deletedCount} item(s)`);
+      return true;
+    }
+    return false;
+  }, [internalNodes, internalEdges, setInternalNodes, setInternalEdges]);
+
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
     if (event.key === 'Delete' || event.key === 'Backspace') {
-      const selectedNodes = internalNodes.filter(node => node.selected);
-      const selectedEdges = internalEdges.filter(edge => edge.selected);
-      
-      if (selectedNodes.length > 0 || selectedEdges.length > 0) {
-        const selectedNodeIds = selectedNodes.map(node => node.id);
-        
-        const remainingNodes = internalNodes.filter(node => !selectedNodeIds.includes(node.id));
-        const remainingEdges = internalEdges.filter(edge => 
-          !selectedEdges.some(selectedEdge => selectedEdge.id === edge.id) &&
-          !selectedNodeIds.includes(edge.source) &&
-          !selectedNodeIds.includes(edge.target)
-        );
-        
-        setInternalNodes(remainingNodes);
-        setInternalEdges(remainingEdges);
-        
-        const deletedCount = selectedNodes.length + selectedEdges.length;
-        toast.success(`Deleted ${deletedCount} item(s)`);
-      }
+      deleteSelected();
     }
-  }, [internalNodes, internalEdges, setInternalNodes, setInternalEdges]);
+  }, [deleteSelected]);
 
   React.useEffect(() => {
     document.addEventListener('keydown', handleKeyDown);
@@ -139,8 +190,8 @@ function CanvasInner({
       <ReactFlow
         nodes={internalNodes}
         edges={internalEdges}
-        onNodesChange={onInternalNodesChange}
-        onEdgesChange={onInternalEdgesChange}
+        onNodesChange={handleNodesChange}
+        onEdgesChange={handleEdgesChange}
         onConnect={onConnect}
         onPaneClick={onCanvasClick}
         connectionMode={ConnectionMode.Strict}
