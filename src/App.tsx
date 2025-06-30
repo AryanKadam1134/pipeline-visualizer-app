@@ -19,6 +19,11 @@ function App() {
   // JSON representation
   const jsonData = useMemo(() => getDAGAsJSON(nodes, edges), [nodes, edges]);
 
+  // Check if there are selected items
+  const hasSelectedItems = useMemo(() => {
+    return nodes.some(node => node.selected) || edges.some(edge => edge.selected);
+  }, [nodes, edges]);
+
   const handleAddNode = useCallback((position: { x: number; y: number }) => {
     const nodeName = prompt('Enter node name:');
     if (!nodeName || nodeName.trim() === '') {
@@ -48,6 +53,31 @@ function App() {
     setNodes(prev => [...prev, newNode]);
     toast.success(`Node "${nodeName}" added`);
   }, []);
+
+  const handleDeleteSelected = useCallback(() => {
+    const selectedNodes = nodes.filter(node => node.selected);
+    const selectedEdges = edges.filter(edge => edge.selected);
+    
+    if (selectedNodes.length === 0 && selectedEdges.length === 0) {
+      toast.error('No items selected');
+      return;
+    }
+
+    const selectedNodeIds = selectedNodes.map(node => node.id);
+    
+    const remainingNodes = nodes.filter(node => !selectedNodeIds.includes(node.id));
+    const remainingEdges = edges.filter(edge => 
+      !selectedEdges.some(selectedEdge => selectedEdge.id === edge.id) &&
+      !selectedNodeIds.includes(edge.source) &&
+      !selectedNodeIds.includes(edge.target)
+    );
+    
+    setNodes(remainingNodes);
+    setEdges(remainingEdges);
+    
+    const deletedCount = selectedNodes.length + selectedEdges.length;
+    toast.success(`Deleted ${deletedCount} item(s)`);
+  }, [nodes, edges]);
 
   const handleAutoLayout = useCallback(() => {
     if (nodes.length < 2) {
@@ -115,6 +145,8 @@ function App() {
           onAddRandomNode={handleAddRandomNode}
           onAutoLayout={handleAutoLayout}
           onClearGraph={handleClearGraph}
+          onDeleteSelected={handleDeleteSelected}
+          hasSelectedItems={hasSelectedItems}
         />
       </div>
 

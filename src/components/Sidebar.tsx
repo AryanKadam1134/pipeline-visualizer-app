@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Plus, Layout, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Plus, Layout, CheckCircle, XCircle, AlertCircle, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -13,6 +13,8 @@ interface SidebarProps {
   onAddRandomNode: () => void;
   onAutoLayout: () => void;
   onClearGraph: () => void;
+  onDeleteSelected: () => void;
+  hasSelectedItems: boolean;
 }
 
 export default function Sidebar({ 
@@ -21,7 +23,9 @@ export default function Sidebar({
   edgeCount, 
   onAddRandomNode, 
   onAutoLayout,
-  onClearGraph 
+  onClearGraph,
+  onDeleteSelected,
+  hasSelectedItems
 }: SidebarProps) {
   return (
     <div className="w-80 bg-white border-l border-gray-200 p-4 space-y-4 overflow-y-auto">
@@ -55,6 +59,16 @@ export default function Sidebar({
           >
             <Layout className="mr-2 h-4 w-4" />
             Auto Layout
+          </Button>
+          <Button 
+            onClick={onDeleteSelected}
+            className="w-full justify-start"
+            variant="outline"
+            size="sm"
+            disabled={!hasSelectedItems}
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            Delete Selected
           </Button>
           <Button 
             onClick={onClearGraph}
@@ -152,6 +166,7 @@ export default function Sidebar({
           <p>• Click anywhere on canvas to add a node</p>
           <p>• Drag from node edges to create connections</p>
           <p>• Select nodes/edges and press Delete to remove</p>
+          <p>• Use Delete Selected button to remove selected items</p>
           <p>• Use Auto Layout to organize nodes</p>
           <p>• DAG rules prevent cycles and ensure connectivity</p>
         </CardContent>
