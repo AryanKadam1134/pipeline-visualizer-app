@@ -44,23 +44,33 @@ function CanvasInner({
   const [internalNodes, setInternalNodes, onInternalNodesChange] = useNodesState(nodes);
   const [internalEdges, setInternalEdges, onInternalEdgesChange] = useEdgesState(edges);
 
-  // Sync external state with internal state
+  // Only sync when external state changes significantly (like adding/removing nodes)
   React.useEffect(() => {
-    setInternalNodes(nodes);
-  }, [nodes, setInternalNodes]);
+    if (nodes.length !== internalNodes.length || 
+        nodes.some(node => !internalNodes.find(n => n.id === node.id))) {
+      setInternalNodes(nodes);
+    }
+  }, [nodes.length, setInternalNodes]);
 
   React.useEffect(() => {
-    setInternalEdges(edges);
-  }, [edges, setInternalEdges]);
+    if (edges.length !== internalEdges.length ||
+        edges.some(edge => !internalEdges.find(e => e.id === edge.id))) {
+      setInternalEdges(edges);
+    }
+  }, [edges.length, setInternalEdges]);
 
-  // Sync internal state changes back to parent
+  // Only sync back to parent when nodes/edges are added or removed, not when positions change
   React.useEffect(() => {
-    onNodesChange(internalNodes);
-  }, [internalNodes, onNodesChange]);
+    if (internalNodes.length !== nodes.length) {
+      onNodesChange(internalNodes);
+    }
+  }, [internalNodes.length, onNodesChange]);
 
   React.useEffect(() => {
-    onEdgesChange(internalEdges);
-  }, [internalEdges, onEdgesChange]);
+    if (internalEdges.length !== edges.length) {
+      onEdgesChange(internalEdges);
+    }
+  }, [internalEdges.length, onEdgesChange]);
 
   const onConnect = useCallback((params: Connection) => {
     if (!params.source || !params.target) return;
@@ -97,14 +107,12 @@ function CanvasInner({
 
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
     if (event.key === 'Delete' || event.key === 'Backspace') {
-      // Get selected nodes and edges
       const selectedNodes = internalNodes.filter(node => node.selected);
       const selectedEdges = internalEdges.filter(edge => edge.selected);
       
       if (selectedNodes.length > 0 || selectedEdges.length > 0) {
         const selectedNodeIds = selectedNodes.map(node => node.id);
         
-        // Remove selected nodes and their connected edges
         const remainingNodes = internalNodes.filter(node => !selectedNodeIds.includes(node.id));
         const remainingEdges = internalEdges.filter(edge => 
           !selectedEdges.some(selectedEdge => selectedEdge.id === edge.id) &&
