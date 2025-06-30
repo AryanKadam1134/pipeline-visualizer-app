@@ -17,7 +17,7 @@ import {
   BackgroundVariant,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
-import { canConnectNodes, autoLayoutNodes } from '../utils/graphHelpers';
+import { canConnectNodes } from '../utils/graphHelpers';
 import { toast } from 'sonner';
 
 interface CanvasProps {
@@ -39,11 +39,33 @@ function CanvasInner({
 }: CanvasProps) {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { screenToFlowPosition } = useReactFlow();
+  
+  // Use React Flow's built-in state management
+  const [internalNodes, setInternalNodes, onInternalNodesChange] = useNodesState(nodes);
+  const [internalEdges, setInternalEdges, onInternalEdgesChange] = useEdgesState(edges);
+
+  // Sync external state with internal state
+  React.useEffect(() => {
+    setInternalNodes(nodes);
+  }, [nodes, setInternalNodes]);
+
+  React.useEffect(() => {
+    setInternalEdges(edges);
+  }, [edges, setInternalEdges]);
+
+  // Sync internal state changes back to parent
+  React.useEffect(() => {
+    onNodesChange(internalNodes);
+  }, [internalNodes, onNodesChange]);
+
+  React.useEffect(() => {
+    onEdgesChange(internalEdges);
+  }, [internalEdges, onEdgesChange]);
 
   const onConnect = useCallback((params: Connection) => {
     if (!params.source || !params.target) return;
     
-    const validation = canConnectNodes(params.source, params.target, edges);
+    const validation = canConnectNodes(params.source, params.target, internalEdges);
     if (!validation.canConnect) {
       toast.error(validation.reason || 'Cannot create connection');
       return;
@@ -57,9 +79,9 @@ function CanvasInner({
       style: { stroke: '#6366f1', strokeWidth: 2 }
     };
     
-    onEdgesChange([...edges, newEdge]);
+    setInternalEdges(edges => addEdge(newEdge, edges));
     toast.success('Connection created');
-  }, [edges, onEdgesChange]);
+  }, [internalEdges, setInternalEdges]);
 
   const onCanvasClick = useCallback((event: React.MouseEvent) => {
     if (!reactFlowWrapper.current) return;
@@ -76,28 +98,28 @@ function CanvasInner({
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
     if (event.key === 'Delete' || event.key === 'Backspace') {
       // Get selected nodes and edges
-      const selectedNodes = nodes.filter(node => node.selected);
-      const selectedEdges = edges.filter(edge => edge.selected);
+      const selectedNodes = internalNodes.filter(node => node.selected);
+      const selectedEdges = internalEdges.filter(edge => edge.selected);
       
       if (selectedNodes.length > 0 || selectedEdges.length > 0) {
         const selectedNodeIds = selectedNodes.map(node => node.id);
         
         // Remove selected nodes and their connected edges
-        const remainingNodes = nodes.filter(node => !selectedNodeIds.includes(node.id));
-        const remainingEdges = edges.filter(edge => 
+        const remainingNodes = internalNodes.filter(node => !selectedNodeIds.includes(node.id));
+        const remainingEdges = internalEdges.filter(edge => 
           !selectedEdges.some(selectedEdge => selectedEdge.id === edge.id) &&
           !selectedNodeIds.includes(edge.source) &&
           !selectedNodeIds.includes(edge.target)
         );
         
-        onNodesChange(remainingNodes);
-        onEdgesChange(remainingEdges);
+        setInternalNodes(remainingNodes);
+        setInternalEdges(remainingEdges);
         
         const deletedCount = selectedNodes.length + selectedEdges.length;
         toast.success(`Deleted ${deletedCount} item(s)`);
       }
     }
-  }, [nodes, edges, onNodesChange, onEdgesChange]);
+  }, [internalNodes, internalEdges, setInternalNodes, setInternalEdges]);
 
   React.useEffect(() => {
     document.addEventListener('keydown', handleKeyDown);
@@ -107,31 +129,10 @@ function CanvasInner({
   return (
     <div className="w-full h-full" ref={reactFlowWrapper}>
       <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        onNodesChange={(changes) => {
-          const updatedNodes = nodes.map(node => {
-            const change = changes.find(c => c.type !== 'add' && c.type !== 'remove' && 'id' in c && c.id === node.id);
-            if (change && change.type === 'position' && 'position' in change && change.position) {
-              return { ...node, position: change.position };
-            }
-            if (change && change.type === 'select' && 'selected' in change) {
-              return { ...node, selected: change.selected };
-            }
-            return node;
-          });
-          onNodesChange(updatedNodes);
-        }}
-        onEdgesChange={(changes) => {
-          const updatedEdges = edges.map(edge => {
-            const change = changes.find(c => c.type !== 'add' && c.type !== 'remove' && 'id' in c && c.id === edge.id);
-            if (change && change.type === 'select' && 'selected' in change) {
-              return { ...edge, selected: change.selected };
-            }
-            return edge;
-          });
-          onEdgesChange(updatedEdges);
-        }}
+        nodes={internalNodes}
+        edges={internalEdges}
+        onNodesChange={onInternalNodesChange}
+        onEdgesChange={onInternalEdgesChange}
         onConnect={onConnect}
         onPaneClick={onCanvasClick}
         connectionMode={ConnectionMode.Strict}
