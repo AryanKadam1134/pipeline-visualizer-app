@@ -177,4 +177,4 @@ src/
 
 **Built with ❤️ using React, TypeScript, and React Flow**
 
-[Demo]([https://your-demo-url.vercel.app](https://pipeline-visualizer-app.vercel.app/)) | [Source Code]([https://github.com/your-username/pipeline-editor](https://github.com/AryanKadam1134/pipeline-visualizer-app.git))
+[Demo]((https://pipeline-visualizer-app.vercel.app/)) | [Source Code]((https://github.com/AryanKadam1134/pipeline-visualizer-app.git))
