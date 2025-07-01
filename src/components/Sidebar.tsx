@@ -140,6 +140,15 @@ export default function Sidebar({
                 {validation.allNodesConnected ? "✓" : "✗"}
               </Badge>
             </div>
+            
+            {validation.hasSelfLoops !== undefined && (
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">No Self-loops:</span>
+                <Badge variant={!validation.hasSelfLoops ? "default" : "destructive"}>
+                  {!validation.hasSelfLoops ? "✓" : "✗"}
+                </Badge>
+              </div>
+            )}
           </div>
 
           {validation.errors.length > 0 && (

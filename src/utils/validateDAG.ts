@@ -7,6 +7,7 @@ export interface DAGValidationResult {
   hasMinNodes: boolean;
   hasCycles: boolean;
   allNodesConnected: boolean;
+  hasSelfLoops?: boolean;
 }
 
 export function validateDAG(nodes: Node[], edges: Edge[]): DAGValidationResult {
@@ -15,38 +16,58 @@ export function validateDAG(nodes: Node[], edges: Edge[]): DAGValidationResult {
   // Check minimum nodes requirement
   const hasMinNodes = nodes.length >= 2;
   if (!hasMinNodes) {
-    errors.push('At least 2 nodes are required');
+    if (nodes.length === 0) {
+      errors.push('No nodes present - click on canvas to add nodes');
+    } else if (nodes.length === 1) {
+      errors.push('Add at least 1 more node for a valid DAG');
+    }
   }
   
-  // Check for cycles using DFS
-  const hasCycles = detectCycles(nodes, edges);
+  // Check for self-loops first (this is always invalid)
+  const hasSelfLoops = edges.some(edge => edge.source === edge.target);
+  if (hasSelfLoops) {
+    errors.push('Self-loops detected - nodes cannot connect to themselves');
+  }
+  
+  // Check for cycles using DFS (only if we have edges and more than 1 node)
+  const hasCycles = (edges.length > 0 && nodes.length > 1) ? detectCycles(nodes, edges) : false;
   if (hasCycles) {
-    errors.push('Graph contains cycles - not a valid DAG');
+    errors.push('Cycle detected - remove connections that create loops');
   }
   
   // Check if all nodes are connected (weakly connected)
+  // For a DAG to be valid, all nodes should be reachable from each other
   const allNodesConnected = isWeaklyConnected(nodes, edges);
   if (!allNodesConnected && nodes.length > 1) {
-    errors.push('All nodes must be connected');
+    if (edges.length === 0) {
+      errors.push('No connections between nodes - drag to connect nodes');
+    } else {
+      errors.push('Some nodes are isolated - ensure all nodes are connected');
+    }
   }
   
-  const isValid = hasMinNodes && !hasCycles && allNodesConnected;
+  // A DAG is valid if: has minimum nodes, no cycles, all connected, no self-loops
+  const isValid = hasMinNodes && !hasCycles && allNodesConnected && !hasSelfLoops;
   
   return {
     isValid,
     errors,
     hasMinNodes,
     hasCycles,
-    allNodesConnected
+    allNodesConnected,
+    hasSelfLoops
   };
 }
 
 function detectCycles(nodes: Node[], edges: Edge[]): boolean {
+  if (nodes.length === 0 || edges.length === 0) return false;
+  
   const nodeIds = nodes.map(n => n.id);
   const adjList = buildAdjacencyList(nodeIds, edges);
   const visited = new Set<string>();
   const recursionStack = new Set<string>();
   
+  // Check for cycles starting from each unvisited node
   for (const nodeId of nodeIds) {
     if (!visited.has(nodeId)) {
       if (dfsHasCycle(nodeId, adjList, visited, recursionStack)) {
@@ -84,6 +105,7 @@ function dfsHasCycle(
 
 function isWeaklyConnected(nodes: Node[], edges: Edge[]): boolean {
   if (nodes.length <= 1) return true;
+  if (edges.length === 0) return false; // No edges means nodes are disconnected
   
   const nodeIds = nodes.map(n => n.id);
   const undirectedAdjList = buildUndirectedAdjacencyList(nodeIds, edges);
@@ -91,7 +113,7 @@ function isWeaklyConnected(nodes: Node[], edges: Edge[]): boolean {
   const visited = new Set<string>();
   const startNode = nodeIds[0];
   
-  // DFS from first node
+  // DFS from first node to see if all nodes are reachable
   function dfs(nodeId: string) {
     visited.add(nodeId);
     const neighbors = undirectedAdjList.get(nodeId) || [];
@@ -104,6 +126,7 @@ function isWeaklyConnected(nodes: Node[], edges: Edge[]): boolean {
   
   dfs(startNode);
   
+  // All nodes should be visited for the graph to be weakly connected
   return visited.size === nodeIds.length;
 }
 

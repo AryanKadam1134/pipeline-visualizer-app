@@ -13,7 +13,15 @@ function App() {
   const [edges, setEdges] = useState<Edge[]>([]);
 
   // Validation results
-  const validation = useMemo(() => validateDAG(nodes, edges), [nodes, edges]);
+  const validation = useMemo(() => {
+    const result = validateDAG(nodes, edges);
+    console.log('DAG Validation Result:', {
+      nodes: nodes.length,
+      edges: edges.length,
+      ...result
+    });
+    return result;
+  }, [nodes, edges]);
   
   // JSON representation
   const jsonData = useMemo(() => getDAGAsJSON(nodes, edges), [nodes, edges]);
@@ -118,12 +126,18 @@ function App() {
               validation.isValid 
                 ? 'bg-green-100 text-green-800' 
                 : 'bg-red-100 text-red-800'
-            }`}>
-              {validation.isValid ? 'Valid DAG' : 'Invalid DAG'}
+            }`} title={validation.errors.join(', ')}>
+              {validation.isValid ? '✓ Valid DAG' : '✗ Invalid DAG'}
             </div>
             <div className="px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-xs font-medium">
               {nodes.length} nodes, {edges.length} edges
             </div>
+            {validation.errors.length > 0 && (
+              <div className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium" 
+                   title={validation.errors.join('\n')}>
+                {validation.errors.length} issue{validation.errors.length > 1 ? 's' : ''}
+              </div>
+            )}
           </div>
         </div>
       </header>

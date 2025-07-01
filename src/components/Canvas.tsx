@@ -134,11 +134,27 @@ function CanvasInner({
       style: { stroke: '#6366f1', strokeWidth: 2 }
     };
     
-    setInternalEdges(edges => addEdge(newEdge, edges));
+    const updatedEdges = addEdge(newEdge, internalEdges);
+    setInternalEdges(updatedEdges);
+    
+    // Sync the new edges back to parent immediately
+    onEdgesChange(updatedEdges);
     toast.success('Connection created');
-  }, [internalEdges, setInternalEdges]);
+  }, [internalEdges, setInternalEdges, onEdgesChange]);
 
   const onCanvasClick = useCallback((event: React.MouseEvent) => {
+    // Only add node if clicking on empty canvas, not on nodes or edges
+    const target = event.target as HTMLElement;
+    
+    // Check if we clicked on a node, edge, or control element
+    if (target.closest('.react-flow__node') || 
+        target.closest('.react-flow__edge') || 
+        target.closest('.react-flow__controls') ||
+        target.closest('.react-flow__minimap') ||
+        target.closest('.react-flow__handle')) {
+      return; // Don't add node if clicking on existing elements
+    }
+    
     if (!reactFlowWrapper.current) return;
     
     const rect = reactFlowWrapper.current.getBoundingClientRect();
@@ -167,12 +183,16 @@ function CanvasInner({
       setInternalNodes(remainingNodes);
       setInternalEdges(remainingEdges);
       
+      // Sync deletions back to parent
+      onNodesChange(remainingNodes);
+      onEdgesChange(remainingEdges);
+      
       const deletedCount = selectedNodes.length + selectedEdges.length;
       toast.success(`Deleted ${deletedCount} item(s)`);
       return true;
     }
     return false;
-  }, [internalNodes, internalEdges, setInternalNodes, setInternalEdges]);
+  }, [internalNodes, internalEdges, setInternalNodes, setInternalEdges, onNodesChange, onEdgesChange]);
 
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
     if (event.key === 'Delete' || event.key === 'Backspace') {
