@@ -154,25 +154,7 @@ src/
 
 ## 🚢 Deployment
 
-### Vercel Deployment (Recommended)
-
-1. **Connect Repository**
-   - Import project to Vercel
-   - Auto-detects Vite configuration
-
-2. **Environment Variables**
-   - No additional env vars required
-   - Uses standard Vite build process
-
-3. **Deploy**
-   - Automatic deployments on git push
-   - Preview deployments for PRs
-
-### Alternative Platforms
-- **Netlify**: Drop the `dist` folder after `npm run build`
-- **GitHub Pages**: Use `gh-pages` package for deployment
-- **AWS S3**: Upload build files to S3 bucket with static hosting
-
+### Vercel Deployment
 ---
 
 **Built with ❤️ using React, TypeScript, and React Flow**
